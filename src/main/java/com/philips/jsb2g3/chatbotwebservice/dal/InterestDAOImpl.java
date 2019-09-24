@@ -23,11 +23,13 @@ public class InterestDAOImpl implements InterestDAO {
     @PersistenceContext
     EntityManager em;
 
+    public void setEntityManager(EntityManager em) {
+        this.em = em;
+    }
+
     @Override
     public void addNewInterest(Interest interest) {
-        if (interest != null) {
-            em.persist(interest);
-        }
+        em.persist(interest);
     }
 
     @Override

@@ -9,17 +9,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.philips.jsb2g3.chatbotwebservice.dal.MonitorDAO;
-import com.philips.jsb2g3.chatbotwebservice.domain.Context;
+import com.philips.jsb2g3.chatbotwebservice.domain.Data;
 import com.philips.jsb2g3.chatbotwebservice.domain.Monitor;
 
 @Service
 public class MonitorServiceImpl implements MonitorService {
+  private static final String BRAND= "brand";
+  private static final String SCREENTYPE= "screentype";
+  private static final String SCREENSIZE= "screensize";
+  private static final String ISMODEL= "isModel";
+  private static final String DISPLAY= "display";
+  private static final String VALUES= "values";
+  private static final String UPDATE= "update";
 
   MonitorDAO dao;
 
@@ -30,24 +36,15 @@ public class MonitorServiceImpl implements MonitorService {
   }
 
   @Override
-  public boolean addNewMonitor(Monitor toBeAdded) {
-    if (toBeAdded.getBrand() == null || toBeAdded.getBrand().length() == 0) {
+  public boolean addNewMonitor(Monitor m) {
+    if (m == null) {
+      return false;
+    }
+    if (!m.isValid()) {
       return false;
     }
 
-    if (toBeAdded.getName() == null || toBeAdded.getName().length() == 0) {
-      return false;
-    }
-
-    if (toBeAdded.getSize() == null || toBeAdded.getSize().length() == 0) {
-      return false;
-    }
-    
-    if (toBeAdded.getType() == null || toBeAdded.getType().length() == 0) {
-      return false;
-    }
-
-    dao.save(toBeAdded);
+    dao.save(m);
     return true;
   }
 
@@ -60,132 +57,179 @@ public class MonitorServiceImpl implements MonitorService {
   public List<Monitor> findAll() {
     return dao.findAll();
   }
+
+  // refactor
   @Override
   public boolean deleteMonitor(Monitor m) {
-    if (m == null) return false;
-    if (m.getName() == null) return false;
-    if (m.getName().length() == 0) return false;
-    
-    Monitor monitor = dao.findByName(m.getName());
-    if (monitor != null) dao.deleteByName(m.getName());
-    else return false;
+    if (m == null) {
+      return false;
+    }
+    if (m.getName() == null) {
+      return false;
+    }
+    if (m.getName().length() == 0) {
+      return false;
+    }
+
+    final Monitor monitor = dao.findByName(m.getName());
+    if (monitor != null) {
+      dao.deleteByName(m.getName());
+    } else {
+      return false;
+    }
 
     return true;
   }
 
   @Override
-  public String getDisplayContext(Context context) {
-    if (context != null) {
-      context.trim();
+  public String getDisplayContext(Data data) {
+    if (data == null) {
+      return "";
     }
-    JSONObject data = parseContext(context);
-    return data.toJSONString();
+    data.trim();
+    final JSONObject data2 = parseData(data);
+    return data2.toJSONString();
   }
 
+
   @SuppressWarnings("unchecked")
-  private JSONObject parseContext(Context context) {
-    JSONObject data = new JSONObject();
-    if (context.getBy() == null || context.getBy().equals("")) {
-      JSONArray array = new JSONArray();
-      array.add("brand");
-      array.add("screensize");
-      array.add("screentype");
+  private JSONObject parseData(Data data) {
 
-      data.put("isModel", false);
-      data.put("values", array);
-      data.put("display", "Choose by");
-      data.put("update", "by");
-      return data;
+    if (data.getBy() == null || data.getBy().equals("")) {
+      final JSONObject data1 = new JSONObject();
+      final JSONArray array = new JSONArray();
+      array.add(BRAND);
+      array.add(SCREENSIZE);
+      array.add(SCREENTYPE);
+
+      data1.put(ISMODEL, false);
+      data1.put(VALUES, array);
+      data1.put(DISPLAY, "Choose by");
+      data1.put(UPDATE, "by");
+      return data1;
     }
 
-    List<Monitor> monitors = new ArrayList<>();
-    boolean allHaveValues = true;
-    String[] by = context.getBy().split(" ");
-    for (int i=0; i<by.length; i++) {
-      if (!contextHasValue(by[i], context)) {
-        allHaveValues = false;
+    List<Monitor> monitors;
+    final String[] by = data.getBy().split(" ");
+    final boolean allHaveValues = isAllPaired(by, data);
+
+    monitors = dao.getByData(data);
+    if (allHaveValues) {
+      return whenAllHaveValues(by, monitors);
+    } else {
+      return whenAllDontHaveValues(by, monitors);
+    }
+
+  }
+
+  private JSONObject whenAllHaveValues(String[] by, List<Monitor> monitors) {
+    final JSONObject data = new JSONObject();
+    final Map<String, List<String>> distincts = getDistincts(monitors);
+
+    final Set<String> list = distincts.keySet();
+    boolean allSuggestions = true;
+    for (final String key : list) {
+      final List<String> items = distincts.get(key);
+      if (items.size() > 1) {
+        allSuggestions = false;
+        break;
       }
     }
 
-    monitors = dao.getByContext(context);
-    if (monitors.size() == 1) {
-      data.put("isModel", true);
-      data.put("values", monitors.get(0).getName());
-      data.put("display", "Suggested Model");
-      data.put("update", "none");
-      return data;
-    } else if (allHaveValues) {
-
-      Map<String, List<String>> distincts = getDistincts(monitors);
-      
-      Set<String> toRemove = new HashSet<>(List.of(by));
-      Set<String> list = distincts.keySet();
-      list.removeAll(toRemove);
-
-      JSONArray array = new JSONArray();
-      for (String m : list) {
-        array.add(m);
+    if (allSuggestions) {
+      final JSONArray array = new JSONArray();
+      for (final Monitor m : monitors) {
+        array.add(m.getName());
       }
-        
-      data.put("isModel", false);
-      data.put("values", array);
-      data.put("display", "Choose by");
-      data.put("update", "by");
+
+      data.put(ISMODEL, true);
+      data.put(VALUES, array);
+      data.put(DISPLAY, "Suggested model(s)");
+      data.put(UPDATE, "none");
 
     } else {
-      // 
-      Map<String, List<String>> distincts = getDistincts(monitors);
-      List<String> values = distincts.get(by[by.length - 1]);
+      final Set<String> toRemove = new HashSet<>(List.of(by));
+      list.removeAll(toRemove);
 
-      JSONArray array = new JSONArray();
-      for (String m : values) {
+      final JSONArray array = new JSONArray();
+      for (final String m : list) {
         array.add(m);
       }
 
-      data.put("isModel", false);
-      data.put("values", array);
-      data.put("display", "Select " + by[by.length - 1]);
-      data.put("update", by[by.length - 1]);
-      return data;
-
+      data.put(ISMODEL, false);
+      data.put(VALUES, array);
+      data.put(DISPLAY, "Choose by");
+      data.put(UPDATE, "by");
     }
-    
+
+    return data;
+
+  }
+
+  private JSONObject whenAllDontHaveValues(String[] by, List<Monitor> monitors) {
+    final JSONObject data = new JSONObject();
+    final Map<String, List<String>> distincts = getDistincts(monitors);
+    final List<String> values = distincts.get(by[by.length - 1]);
+
+    final JSONArray array = new JSONArray();
+    for (final String m : values) {
+      array.add(m);
+    }
+
+    data.put(ISMODEL, false);
+    data.put(VALUES, array);
+    data.put(DISPLAY, "Select " + by[by.length - 1]);
+    data.put(UPDATE, by[by.length - 1]);
     return data;
   }
 
-  private Map<String, List<String>> getDistincts(List<Monitor> monitors) {
-    if (monitors == null || monitors.size() ==0) return null;
-    Set<String> brands = new HashSet<>();
-    Set<String> screentype = new HashSet<>();
-    Set<String> screensize = new HashSet<>();
+  private boolean isAllPaired(String[] by, Data data) {
+    boolean allHaveValues = true;
+    for (final String element : by) {
+      if (!dataHasValue(element, data)) {
+        allHaveValues = false;
+        break;
+      }
+    }
+    return allHaveValues;
+  }
 
-    for (Monitor m : monitors) {
+  private Map<String, List<String>> getDistincts(List<Monitor> monitors) {
+    if (monitors == null || monitors.isEmpty()) {
+      return new HashMap<>();
+    }
+    final Set<String> brands = new HashSet<>();
+    final Set<String> screentype = new HashSet<>();
+    final Set<String> screensize = new HashSet<>();
+
+    for (final Monitor m : monitors) {
       brands.add(m.getBrand());
       screensize.add(m.getSize());
       screentype.add(m.getType());
     }
 
-    Map<String, List<String>> map = new HashMap<>();
-    map.put("brand", new ArrayList<String>(brands));
-    map.put("screensize", new ArrayList<String>(screensize));
-    map.put("screentype", new ArrayList<String>(screentype));
+    final Map<String, List<String>> map = new HashMap<>();
+    map.put(BRAND, new ArrayList<>(brands));
+    map.put(SCREENSIZE, new ArrayList<>(screensize));
+    map.put(SCREENTYPE, new ArrayList<>(screentype));
 
-    System.out.println(map);
     return map;
   }
 
-  private boolean contextHasValue(String key, Context context) {
+
+  private boolean dataHasValue(String key, Data data) {
     switch (key) {
-      case "brand" : 
-      return context.getBrand() != null && !context.getBrand().equals("");
+      case BRAND :
+        return data.isBrandValid();
 
-      case "screensize" :
-      return context.getScreenSize() != null && !context.getScreenSize().equals("");
+      case SCREENSIZE :
+        return data.isScreenSizeValid();
 
-      case "screentype" :
-      return context.getScreenType() != null && !context.getScreenType().equals("");
+      case SCREENTYPE :
+        return data.isScreenTypeValid();
+
+      default: return false;
     }
 
-    return false;
   }
 }

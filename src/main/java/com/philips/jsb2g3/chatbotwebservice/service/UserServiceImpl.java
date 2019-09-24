@@ -21,8 +21,8 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public User addNewUser(User toBeAdded) {
-    return dao.save(toBeAdded);
+  public User addNewUser(User user) {
+    return dao.save(user);
   }
 
   @Override
@@ -37,11 +37,15 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public boolean exists(User user) {
-    List<User> users = findAll();
-    if (users == null || users.size() == 0) return false;
+    final List<User> users = findAll();
+    if (users == null || users.isEmpty()) {
+      return false;
+    }
 
-    for (User u : users) {
-      if (u.equals(user)) return true;
+    for (final User u : users) {
+      if (u.equals(user)) {
+        return true;
+      }
     }
     return false;
   }

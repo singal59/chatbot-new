@@ -8,11 +8,9 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
-
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.philips.jsb2g3.chatbotwebservice.domain.Context;
+import com.philips.jsb2g3.chatbotwebservice.domain.Data;
 import com.philips.jsb2g3.chatbotwebservice.domain.Monitor;
 
 @Transactional
@@ -23,7 +21,11 @@ public class MonitorDAOImpl implements MonitorDAO {
   @PersistenceContext
   EntityManager em;
 
-  public static final String STRING="select m from Monitor m";
+  public void setEntityManager(EntityManager em) {
+    this.em = em;
+  }
+
+  private String baseString = "select m from Monitor m";
 
   @Override
   public Monitor save(Monitor m) {
@@ -38,7 +40,7 @@ public class MonitorDAOImpl implements MonitorDAO {
 
   @Override
   public List<Monitor> findAll() {
-    return em.createQuery(STRING)
+    return em.createQuery(baseString)
         .getResultList();
   }
 
@@ -49,73 +51,20 @@ public class MonitorDAOImpl implements MonitorDAO {
   }
 
   @Override
-  public List<String> getAllBrands() {
-    final List<String> brandsList=new ArrayList<>();
-    final List<Monitor> monitors=em.createQuery(STRING)
-        .getResultList();
-
-    for(final Monitor monitor:monitors)
-    {
-      if (!brandsList.contains(monitor.getBrand())) {
-        brandsList.add(monitor.getBrand());
-      }
+  public List<Monitor> getByData(Data data) {
+    if (data == null) {
+      return new ArrayList<>();
     }
-    return brandsList;
-  }
 
-  @Override
-  public List<String> getAllSizes() {
-
-    final List<String> screenSizesList=new ArrayList<>();
-    final List<Monitor> monitors=em.createQuery(STRING)
-        .getResultList();
-
-    for(final Monitor monitor:monitors)
-    {
-      if (!screenSizesList.contains(monitor.getSize())) {
-        screenSizesList.add(monitor.getSize());
-      }
-    }
-    return screenSizesList;
-
-  }
-
-  @Override
-  public List<String> getAllScreenTypes() {
-    final List<String> screenTypesList=new ArrayList<>();
-    final List<Monitor> monitors=em.createQuery(STRING)
-        .getResultList();
-
-    for(final Monitor monitor:monitors)
-    {
-      if (!screenTypesList.contains(monitor.getType())) {
-        screenTypesList.add(monitor.getType());
-      }
-    }
-    return screenTypesList;
-  }
-
-  @Override
-  public List<Monitor> findByGivenBrandGivenSizeGivenScreenType(String brand, String size, String screenType) {
-
-    return em.createQuery("select m from Monitor m where m.size=:size and m.brand=:brand and m.type=:type")
-        .setParameter("brand", brand)
-        .setParameter("size",size)
-        .setParameter("type", screenType)
-        .getResultList();
-  }
-
-  @Override
-  public List<Monitor> getByContext(Context context) {
-    Query query = constructQuery(context);
+    final Query query = constructQuery(data);
     return query.getResultList();
   }
 
-  private Query constructQuery(Context context) {
-    String base = "select m from Monitor m";
 
-    if (context.getModel() != null) {
-      return em.createQuery(base + " where m.name=:name").setParameter("name", context.getModel());
+  private Query constructQuery(Data data) {
+
+    if (data.getModel() != null) {
+      return em.createQuery(baseString + " where m.name=:name").setParameter("name", data.getModel());
     }
 
     boolean useAnd = false;
@@ -123,34 +72,39 @@ public class MonitorDAOImpl implements MonitorDAO {
     boolean sizeIsNull = false;
     boolean typeIsNull = false;
 
-    if (context.getBrand() != null && context.getBrand().length() > 0) {
-      base += " where m.brand='" + context.getBrand() + "'";
+    if (data.isBrandValid()) {
+      baseString += " where m.brand='" + data.getBrand() + "'";
       useAnd = true;
     } else {
       brandIsNull = true;
     }
 
-    if (context.getScreenSize() != null && context.getScreenSize().length() > 0) {
-      if (useAnd) base += " and m.size='" + context.getScreenSize() + "'";
-      else base += " where m.size='" + context.getScreenSize() + "'";
+    if (data.isScreenSizeValid()) {
+      if (useAnd) {
+        baseString += " and m.size='" + data.getScreenSize() + "'";
+      } else {
+        baseString += " where m.size='" + data.getScreenSize() + "'";
+      }
       useAnd = true;
     } else {
       sizeIsNull = true;
     }
 
-    if (context.getScreenType() != null && context.getScreenType().length() > 0) {
-      if (useAnd) base += " and m.type='" + context.getScreenType() + "'";
-      else base += " where m.type='" + context.getScreenType() + "'";
+    if (data.isScreenTypeValid()) {
+      if (useAnd) {
+        baseString += " and m.type='" + data.getScreenType() + "'";
+      } else {
+        baseString += " where m.type='" + data.getScreenType() + "'";
+      }
     } else {
       typeIsNull = true;
     }
 
     if (brandIsNull && sizeIsNull && typeIsNull) {
-      return em.createQuery(base);
+      return em.createQuery(baseString);
     }
 
-    Query query = em.createQuery(base, Monitor.class);
-    return query;
+    return em.createQuery(baseString, Monitor.class);
   }
 
 }

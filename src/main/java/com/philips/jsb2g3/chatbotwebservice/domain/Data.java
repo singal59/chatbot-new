@@ -1,6 +1,6 @@
 package com.philips.jsb2g3.chatbotwebservice.domain;
 
-public class Context {
+public class Data {
     String brand;
     String model;
     String screenType;
@@ -53,5 +53,17 @@ public class Context {
         if (screenSize != null) screenSize = screenSize.trim();
         if (screenType != null) screenType = screenType.trim();
         if (by != null) by = by.trim();
+    }
+
+    public boolean isBrandValid() {
+        return this.brand != null && this.brand.length() > 0;
+    }
+
+    public boolean isScreenSizeValid() {
+        return this.screenSize != null && this.screenSize.length() > 0;
+    }
+
+    public boolean isScreenTypeValid() {
+        return this.screenType != null && this.screenType.length() > 0;
     }
 }

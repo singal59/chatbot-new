@@ -16,16 +16,16 @@ public class User {
 
   @Id
   @Column(name = "id")
-  @GeneratedValue(strategy=GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   int id;
 
-  @Column(name="name")
+  @Column(name = "name")
   String name;
 
-  @Column(name="contact_no")
+  @Column(name = "contact_no")
   String contactNo;
 
-  @Column(name="email")
+  @Column(name = "email")
   String email;
 
   public User() {
@@ -73,31 +73,65 @@ public class User {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (getClass() != obj.getClass())
-      return false;
-    User other = (User) obj;
+    if (baseCheck(obj)) {
+      final User other = (User) obj;
+      if (isNameSame(other) && isEmailSame(other) && isContactSame(other)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isContactSame(User other) {
     if (contactNo == null) {
-      if (other.contactNo != null)
+      if (other.contactNo != null) {
         return false;
-    } else if (!contactNo.equals(other.contactNo))
+      }
+    } else if (!contactNo.equals(other.contactNo)) {
       return false;
-    if (email == null) {
-      if (other.email != null)
-        return false;
-    } else if (!email.equals(other.email))
-      return false;
-    if (name == null) {
-      if (other.name != null)
-        return false;
-    } else if (!name.equals(other.name))
-      return false;
+    }
     return true;
   }
 
-  
+  private boolean isNameSame(User other) {
+    if (name == null) {
+      if (other.name != null) {
+        return false;
+      }
+    } else if (!name.equals(other.name)) {
+      return false;
+    }
+    return true;
+  }
 
+  private boolean isEmailSame(User other) {
+    if (email == null) {
+      if (other.email != null) {
+        return false;
+      }
+    } else if (!email.equals(other.email)) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean baseCheck(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    return (getClass() == obj.getClass());
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((contactNo == null) ? 0 : contactNo.hashCode());
+    result = prime * result + ((email == null) ? 0 : email.hashCode());
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    return result;
+  }
 }

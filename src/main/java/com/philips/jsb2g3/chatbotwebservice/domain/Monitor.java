@@ -69,4 +69,24 @@ public class Monitor {
     this.type = type;
   }
 
+  public boolean isValid() {
+    return isBrandValid() && isNameValid() && isSizeValid() && isTypeValid();
+  }
+
+  private boolean isBrandValid() {
+    return this.brand != null && this.brand.length() > 0;
+  }
+
+  private boolean isNameValid() {
+    return this.name != null && this.name.length() > 0;
+  }
+
+  private boolean isSizeValid() {
+    return this.size != null && this.size.length() > 0;
+  }
+
+  private boolean isTypeValid() {
+    return this.type != null && this.type.length() > 0;
+  }
+
 }

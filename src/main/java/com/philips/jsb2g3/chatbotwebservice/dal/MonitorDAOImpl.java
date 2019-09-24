@@ -25,8 +25,6 @@ public class MonitorDAOImpl implements MonitorDAO {
     this.em = em;
   }
 
-  private String baseString = "select m from Monitor m";
-
   @Override
   public Monitor save(Monitor m) {
     em.persist(m);
@@ -40,7 +38,7 @@ public class MonitorDAOImpl implements MonitorDAO {
 
   @Override
   public List<Monitor> findAll() {
-    return em.createQuery(baseString)
+    return em.createQuery("select m from Monitor m")
         .getResultList();
   }
 
@@ -62,6 +60,8 @@ public class MonitorDAOImpl implements MonitorDAO {
 
 
   private Query constructQuery(Data data) {
+
+    String baseString = "select m from Monitor m";
 
     if (data.getModel() != null) {
       return em.createQuery(baseString + " where m.name=:name").setParameter("name", data.getModel());

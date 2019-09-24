@@ -12,6 +12,34 @@ Run the ChatbotwebserviceApplication and use 'Postman' as the client.
 The documentation of all the APIs in the ChatbotController class is provided in the link given below:
 http://localhost:8080/swagger-ui.html#/chatbot-controller
 
+For interact api
+
+{
+	"brand" : "",
+	"screenSize" : "",
+	"screenType" : "",
+	"by" : ""
+}
+
+
+for interest api
+
+{
+	"idate" : "2017-03-05",
+	"user" : {
+		"name" : "aashna",
+		"contactNo" : "999999998",
+		"email" : "hiaashna@bye.com"
+	},
+	"monitor" : {
+		"name" : "CM12"
+	}
+}
+
+
+
+
+
 
 
 
